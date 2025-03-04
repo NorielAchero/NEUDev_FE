@@ -281,27 +281,22 @@ async function deleteProfile() {
 }
 
 
-// Helper function for safe API calls
+// Your safeFetch helper might already be defined here.
 async function safeFetch(url, options = {}) {
     try {
-        const response = await fetch(url, options);
-
-        if (response.status === 204) return { message: "Success" };
-
-        const text = await response.text();
-        const data = text ? JSON.parse(text) : null;
-
-        if (!response.ok) {
-            console.error(`❌ API Error [${response.status}]:`, data);
-            return { error: data?.message || `Request failed with status ${response.status}`, details: data };
-        }
-
-        return data || { message: "Success" };
+      const response = await fetch(url, options);
+      if (response.status === 204) return { message: "Success" };
+      const text = await response.text();
+      const data = text ? JSON.parse(text) : null;
+      if (!response.ok) {
+        return { error: data?.message || `Request failed with status ${response.status}`, details: data };
+      }
+      return data || { message: "Success" };
     } catch (error) {
-        console.error("❌ Network/API Error:", error);
-        return { error: "Network error or invalid response." };
+      console.error("Network/API Error:", error);
+      return { error: "Network error or invalid response." };
     }
-}
+  }
 
 //////////////////////////////////////////
 // CLASS FUNCTIONS (STUDENTS)
@@ -363,8 +358,6 @@ async function getStudentClasses() {
         return response;
     });
 }
-
-
 
 
 //////////////////////////////////////////
@@ -458,6 +451,30 @@ async function getClassInfo(classID) {
     });
 }
   
+
+async function getClassStudents(classID) {
+    const token = sessionStorage.getItem("access_token");
+    if (!token) return { error: "Unauthorized access: No token found" };
+
+    return await safeFetch(`${API_LINK}/teacher/class/${classID}/students`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+}
+
+async function unenrollStudent(classID, studentID) {
+    const token = sessionStorage.getItem("access_token");
+    if (!token) return { error: "Unauthorized access: No token found" };
+
+    return await safeFetch(`${API_LINK}/teacher/class/${classID}/unenroll/${studentID}`, {
+        method: "DELETE",
+        headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        }
+    });
+}
+
 //////////////////////////////////////////
 // ACTIVITY FUNCTIONS
 //////////////////////////////////////////
@@ -779,6 +796,7 @@ export {
     getClassInfo,
     getQuestions,
     getItemTypes,
+    getClassStudents,
     getActivityDetails,
     getActivityItemsByStudent, 
     getActivityLeaderboardByStudent, 
@@ -793,4 +811,5 @@ export {
     deleteQuestion,
     getProgrammingLanguages,
     updateClass,
+    unenrollStudent
 };
