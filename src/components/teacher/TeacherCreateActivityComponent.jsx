@@ -8,13 +8,22 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import '/src/style/teacher/amCreateNewActivity.css';
 import TeacherCMNavigationBarComponent from './TeacherCMNavigationBarComponent';
-import { getQuestions, createActivity, getItemTypes, getProgrammingLanguages } from '../api/API';
 
-// Mapping of known programming language IDs to names and images
+// --- Updated: using getItems instead of getItemsByItemType
+import { 
+  getItems,
+  createActivity, 
+  getItemTypes, 
+  getProgrammingLanguages 
+} from '../api/API';
+
+// 1) Use the **name** returned by your backend as keys.
+//    If your backend returns "C#", "Java", and "Python",
+//    your map should be exactly like this:
 const programmingLanguageMap = {
-  1: { name: "Java", image: "/src/assets/java2.png" },
-  2: { name: "C#", image: "/src/assets/c.png" },
-  3: { name: "Python", image: "/src/assets/py.png" }
+  "C#":     { name: "C#",     image: "/src/assets/c.png" },
+  "Java":   { name: "Java",   image: "/src/assets/java2.png" },
+  "Python": { name: "Python", image: "/src/assets/py.png" }
 };
 
 export const TeacherCreateActivityComponent = () => {
@@ -25,49 +34,47 @@ export const TeacherCreateActivityComponent = () => {
   const [activityDescription, setActivityDescription] = useState('');
   const [actDifficulty, setDifficulty] = useState('');
 
-  // NEW: Store duration as a "HH:MM:SS" string
+  // Store duration as "HH:MM:SS" (input as minutes)
   const [activityDuration, setActivityDuration] = useState('');
+  
+  // -------------------- Item Bank State --------------------
+  const [selectedItems, setSelectedItems] = useState([null, null, null]);
+  const [presetItems, setPresetItems] = useState([]);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [selectedItemIndex, setSelectedItemIndex] = useState(null);
+  // New state for item bank scope (personal vs. global)
+  const [itemBankScope, setItemBankScope] = useState("personal");
 
-  // For programming languages
+  // -------------------- Item Types & Programming Languages --------------------
   const [selectedProgLangs, setSelectedProgLangs] = useState([]);
   const [selectedItemType, setSelectedItemType] = useState(null);
   const [itemTypeName, setItemTypeName] = useState('');
   const [itemTypes, setItemTypes] = useState([]);
 
-  // For question selection, store full question objects (or null)
-  const [selectedQuestions, setSelectedQuestions] = useState([null, null, null]);
-  const [presetQuestions, setPresetQuestions] = useState([]);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [selectedQuestionIndex, setSelectedQuestionIndex] = useState(null);
-
-  // New state for question bank scope (personal vs. global preset questions)
-  const [questionBankScope, setQuestionBankScope] = useState("personal");
-
-  // Dates
+  // -------------------- Dates --------------------
   const [dateOpened, setDateOpened] = useState('');
   const [dateClosed, setDateClosed] = useState('');
 
-  // Modal for picking questions
+  // -------------------- Modal State --------------------
   const [showModal, setShowModal] = useState(false);
   const [showItemTypeDropdown, setShowItemTypeDropdown] = useState(false);
 
-  // Programming languages from the server
+  // -------------------- Programming Languages from Server --------------------
   const [programmingLanguages, setProgrammingLanguages] = useState([]);
 
-  // For actDuration input
+  // For actDuration input in minutes
   const [durationInMinutes, setDurationInMinutes] = useState("0");
 
-  // -------------------- New states for sorting the preset questions --------------------
-  const [questionSortField, setQuestionSortField] = useState("questionName"); // can be "questionName", "questionDifficulty", or "questionPoints"
-  const [questionSortOrder, setQuestionSortOrder] = useState("asc"); // "asc" or "desc"
+  // -------------------- Sorting Preset Items --------------------
+  const [itemSortField, setItemSortField] = useState("itemName");
+  const [itemSortOrder, setItemSortOrder] = useState("asc");
 
-  // Function to toggle sorting order (or change field)
-  const toggleQuestionSortOrder = (field) => {
-    if (questionSortField === field) {
-      setQuestionSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
+  const toggleItemSortOrder = (field) => {
+    if (itemSortField === field) {
+      setItemSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
     } else {
-      setQuestionSortField(field);
-      setQuestionSortOrder("asc");
+      setItemSortField(field);
+      setItemSortOrder("asc");
     }
   };
 
@@ -77,27 +84,27 @@ export const TeacherCreateActivityComponent = () => {
     "Advanced": 3
   };
 
-  const sortedPresetQuestions = [...presetQuestions].sort((a, b) => {
+  const sortedPresetItems = [...presetItems].sort((a, b) => {
     let fieldA, fieldB;
-    switch (questionSortField) {
-      case "questionName":
-        fieldA = (a.questionName || "").toLowerCase();
-        fieldB = (b.questionName || "").toLowerCase();
+    switch (itemSortField) {
+      case "itemName":
+        fieldA = (a.itemName || "").toLowerCase();
+        fieldB = (b.itemName || "").toLowerCase();
         break;
-      case "questionDifficulty":
-        fieldA = difficultyOrder[a.questionDifficulty] || 0;
-        fieldB = difficultyOrder[b.questionDifficulty] || 0;
+      case "itemDifficulty":
+        fieldA = difficultyOrder[a.itemDifficulty] || 0;
+        fieldB = difficultyOrder[b.itemDifficulty] || 0;
         break;
-      case "questionPoints":
-        fieldA = a.questionPoints || 0;
-        fieldB = b.questionPoints || 0;
+      case "itemPoints":
+        fieldA = a.itemPoints || 0;
+        fieldB = b.itemPoints || 0;
         break;
       default:
-        fieldA = (a.questionName || "").toLowerCase();
-        fieldB = (b.questionName || "").toLowerCase();
+        fieldA = (a.itemName || "").toLowerCase();
+        fieldB = (b.itemName || "").toLowerCase();
     }
-    if (fieldA < fieldB) return questionSortOrder === "asc" ? -1 : 1;
-    if (fieldA > fieldB) return questionSortOrder === "asc" ? 1 : -1;
+    if (fieldA < fieldB) return itemSortOrder === "asc" ? -1 : 1;
+    if (fieldA > fieldB) return itemSortOrder === "asc" ? 1 : -1;
     return 0;
   });
 
@@ -109,9 +116,9 @@ export const TeacherCreateActivityComponent = () => {
 
   useEffect(() => {
     if (selectedItemType) {
-      fetchPresetQuestions();
+      fetchPresetItems();
     }
-  }, [selectedItemType, questionBankScope]);
+  }, [selectedItemType, itemBankScope]);
 
   // -------------------- API Calls --------------------
   const fetchItemTypes = async () => {
@@ -134,20 +141,20 @@ export const TeacherCreateActivityComponent = () => {
     }
   };
 
-  // Updated fetchPresetQuestions to include the question bank scope and teacherID.
-  const fetchPresetQuestions = async () => {
+  const fetchPresetItems = async () => {
     const teacherID = sessionStorage.getItem("userID");
-    const response = await getQuestions(selectedItemType, { scope: questionBankScope, teacherID });
+    // Use getItems with query params
+    const response = await getItems(selectedItemType, { scope: itemBankScope, teacherID });
     if (!response.error) {
-      setPresetQuestions(response);
+      setPresetItems(response);
     } else {
-      console.error("❌ Failed to fetch preset questions:", response.error);
+      console.error("❌ Failed to fetch preset items:", response.error);
     }
   };
 
-  // -------------------- Question Modal Handlers --------------------
-  const handleQuestionClick = (index) => {
-    setSelectedQuestionIndex(index);
+  // -------------------- Modal Handlers --------------------
+  const handleItemClick = (index) => {
+    setSelectedItemIndex(index);
     setShowModal(true);
   };
 
@@ -155,26 +162,26 @@ export const TeacherCreateActivityComponent = () => {
     setShowModal(false);
   };
 
-  const handleSelectQuestion = (question) => {
-    setSelectedQuestion(question);
+  const handleSelectItem = (item) => {
+    setSelectedItem(item);
   };
 
-  const handleSaveQuestion = () => {
-    if (!selectedQuestion || selectedQuestionIndex === null) return;
+  const handleSaveItem = () => {
+    if (!selectedItem || selectedItemIndex === null) return;
 
-    // Check if the same question is already picked in another slot
-    const alreadyExists = selectedQuestions.some(
-      (q, i) => i !== selectedQuestionIndex && q && q.questionID === selectedQuestion.questionID
+    // Check if the same item is already picked in another slot
+    const alreadyExists = selectedItems.some(
+      (it, i) => i !== selectedItemIndex && it && it.itemID === selectedItem.itemID
     );
     if (alreadyExists) {
-      alert("❌ You already picked that question. Please choose a different one.");
+      alert("❌ You already picked that item. Please choose a different one.");
       return;
     }
 
-    const updated = [...selectedQuestions];
-    updated[selectedQuestionIndex] = selectedQuestion;
-    setSelectedQuestions(updated);
-    setSelectedQuestion(null);
+    const updated = [...selectedItems];
+    updated[selectedItemIndex] = selectedItem;
+    setSelectedItems(updated);
+    setSelectedItem(null);
     setShowModal(false);
   };
 
@@ -202,11 +209,10 @@ export const TeacherCreateActivityComponent = () => {
     }
   };
 
-  // -------------------- Create Activity --------------------
+  // -------------------- Create Activity Handler --------------------
   const handleCreateActivity = async (e) => {
     e.preventDefault();
 
-    // Basic validations for activity fields:
     if (
       !activityTitle.trim() ||
       !activityDescription.trim() ||
@@ -215,50 +221,49 @@ export const TeacherCreateActivityComponent = () => {
       selectedProgLangs.length === 0 ||
       !dateOpened ||
       !dateClosed ||
-      selectedQuestions.every(q => q === null)
+      selectedItems.every(item => item === null)
     ) {
-      alert("⚠️ All fields are required, including at least one programming language, one question, and an activity duration.");
+      alert("⚠️ All fields are required, including at least one programming language, one item, and an activity duration.");
       return;
     }
 
     const classID = sessionStorage.getItem("selectedClassID");
 
-    // Build final question objects (include questionPoints from the question bank)
-    const finalQuestions = selectedQuestions
-      .filter(q => q !== null)
-      .map(q => ({
-        questionID: q.questionID,
+    // Build final item objects
+    const finalItems = selectedItems
+      .filter(item => item !== null)
+      .map(item => ({
+        itemID: item.itemID,
         itemTypeID: selectedItemType,
-        actQuestionPoints: q.questionPoints
+        actItemPoints: item.itemPoints
       }));
 
-    if (finalQuestions.length === 0) {
-      alert("⚠️ Please select at least one valid question.");
+    if (finalItems.length === 0) {
+      alert("⚠️ Please select at least one valid item.");
       return;
     }
 
-    // Compute total points from selected questions
-    const computedPoints = finalQuestions.reduce((sum, q) => sum + (q.actQuestionPoints || 0), 0);
+    // Compute total points from selected items
+    const computedPoints = finalItems.reduce((sum, it) => sum + (it.actItemPoints || 0), 0);
 
-    // Convert total minutes to HH:MM:SS format
+    // Convert total minutes to HH:MM:SS
     const total = parseInt(durationInMinutes, 10);
     const hh = String(Math.floor(total / 60)).padStart(2, "0");
     const mm = String(total % 60).padStart(2, "0");
-    const ss = "00"; // fixed seconds
+    const ss = "00"; // fixed
     const finalDuration = `${hh}:${mm}:${ss}`;
 
-    // The backend will receive actDuration as a string in HH:MM:SS format
     const newActivity = {
       classID,
       actTitle: activityTitle,
       actDesc: activityDescription,
       actDifficulty,
-      actDuration: finalDuration, 
+      actDuration: finalDuration,
       openDate: dateOpened,
       closeDate: dateClosed,
       progLangIDs: selectedProgLangs,
       maxPoints: computedPoints,
-      questions: finalQuestions
+      items: finalItems
     };
 
     console.log("📤 Sending Activity Data:", JSON.stringify(newActivity, null, 2));
@@ -268,12 +273,9 @@ export const TeacherCreateActivityComponent = () => {
       alert(`❌ Failed to create activity: ${response.error}`);
     } else {
       alert("✅ Activity created successfully!");
-      navigate(`/teacher/class/${classID}/activity`); // redirect
+      navigate(`/teacher/class/${classID}/activity`);
     }
   };
-
-  // -------------------- New states for sorting preset questions --------------------
-  // (already defined above)
 
   return (
     <div className="whole-container">
@@ -312,38 +314,48 @@ export const TeacherCreateActivityComponent = () => {
               />
             </div>
 
-            {/* 3 Question Slots */}
+            {/* 3 Item Slots */}
             <div className='question-section'>
-              <h4>Set Questions (Maximum of 3)</h4>
-              {selectedQuestions.map((q, index) => (
+              <h4>Set Items (Maximum of 3)</h4>
+              {selectedItems.map((item, index) => (
                 <div 
                   key={index} 
                   style={{ display: "flex", alignItems: "center", marginBottom: "8px" }}
-                  onClick={() => handleQuestionClick(index)}
+                  onClick={() => handleItemClick(index)}
                 >
                   <Form.Control
                     type="text"
-                    placeholder={`Question ${index + 1}`}
-                    value={q ? `${q.questionName} | ${q.questionDifficulty || "-"} | ${q.questionPoints || 0} pts` : ""}
+                    placeholder={`Item ${index + 1}`}
+                    value={
+                      item
+                        ? `${item.itemName} | ${item.itemDifficulty || "-"} | ${item.itemPoints || 0} pts`
+                        : ""
+                    }
                     readOnly
                     required={index === 0}
                     style={{ flex: 1 }}
                   />
-                  {q && (q.programming_languages || q.programmingLanguages) && (
+                  {/* Here we display each language's icon + name */}
+                  {item && (item.programming_languages || item.programmingLanguages) && (
                     <div style={{ marginLeft: "8px" }}>
-                      {(q.programming_languages || q.programmingLanguages || []).map((langObj, i) => {
-                        const plID = langObj.progLangID;
-                        const mapping = programmingLanguageMap[plID] || { name: langObj.progLangName, image: null };
-                        return mapping.image ? (
-                          <img
-                            key={i}
-                            src={mapping.image}
-                            alt={mapping.name}
-                            style={{ width: "20px", marginRight: "5px" }}
-                          />
-                        ) : (
+                      {(item.programming_languages || item.programmingLanguages || []).map((langObj, i) => {
+                        const langName = langObj.progLangName;
+                        // Use the map that matches exactly your backend's language names:
+                        const known = programmingLanguageMap[langName] || { name: langName, image: null };
+                        return (
                           <span key={i} style={{ marginRight: "5px", fontSize: "12px" }}>
-                            {mapping.name}
+                            {known.image ? (
+                              <>
+                                <img
+                                  src={known.image}
+                                  alt={`${known.name} icon`}
+                                  style={{ width: "20px", marginRight: "4px" }}
+                                />
+                                {known.name}
+                              </>
+                            ) : (
+                              known.name
+                            )}
                           </span>
                         );
                       })}
@@ -383,20 +395,20 @@ export const TeacherCreateActivityComponent = () => {
               />
             </div>
 
-            {/* NEW: Activity Duration Input (HH:MM:SS) */}
+            {/* Activity Duration Input (in minutes) */}
             <Form.Group className="mt-3">
               <Form.Label>Activity Duration (in minutes)</Form.Label>
-                <Form.Control
-                  type="number"
-                  min="1"
-                  value={durationInMinutes}
-                  onChange={(e) => setDurationInMinutes(e.target.value)}
-                  placeholder="Enter total minutes"
-                  required
-                />
-                <Form.Text className="text-muted">
-                  e.g., 90 → 1 hour 30 minutes
-                </Form.Text>
+              <Form.Control
+                type="number"
+                min="1"
+                value={durationInMinutes}
+                onChange={(e) => setDurationInMinutes(e.target.value)}
+                placeholder="Enter total minutes"
+                required
+              />
+              <Form.Text className="text-muted">
+                e.g., 90 → 1 hour 30 minutes
+              </Form.Text>
             </Form.Group>
 
             {/* Programming Languages (Checkboxes) */}
@@ -406,7 +418,10 @@ export const TeacherCreateActivityComponent = () => {
                 <Form.Check 
                   type="checkbox"
                   label="Applicable to all"
-                  checked={selectedProgLangs.length > 0 && selectedProgLangs.length === programmingLanguages.length}
+                  checked={
+                    selectedProgLangs.length > 0 &&
+                    selectedProgLangs.length === programmingLanguages.length
+                  }
                   onChange={(e) => handleSelectAllLangs(e.target.checked)}
                 />
               </div>
@@ -427,9 +442,9 @@ export const TeacherCreateActivityComponent = () => {
               <Form.Control 
                 type="number" 
                 value={
-                  selectedQuestions
-                    .filter(q => q !== null)
-                    .reduce((sum, q) => sum + (q.questionPoints || 0), 0)
+                  selectedItems
+                    .filter(item => item !== null)
+                    .reduce((sum, item) => sum + (item.itemPoints || 0), 0)
                 }
                 readOnly
               />
@@ -441,7 +456,7 @@ export const TeacherCreateActivityComponent = () => {
           </Form>
         </div>
 
-        {/* Modal for selecting a question */}
+        {/* Modal for selecting an item */}
         <Modal
           show={showModal}
           onHide={() => setShowModal(false)}
@@ -451,7 +466,7 @@ export const TeacherCreateActivityComponent = () => {
         >
           <div className="custom-modal-content">
             <Modal.Header closeButton>
-              <Modal.Title>Choose a Question</Modal.Title>
+              <Modal.Title>Choose an Item</Modal.Title>
             </Modal.Header>
             <Modal.Body>
               <h5>Item Type:</h5>
@@ -461,20 +476,24 @@ export const TeacherCreateActivityComponent = () => {
               {showItemTypeDropdown && (
                 <div className="item-type-dropdown">
                   {itemTypes.map(type => (
-                    <Button key={type.itemTypeID} className="dropdown-item" onClick={() => handleItemTypeSelect(type)}>
+                    <Button
+                      key={type.itemTypeID}
+                      className="dropdown-item"
+                      onClick={() => handleItemTypeSelect(type)}
+                    >
                       {type.itemTypeName}
                     </Button>
                   ))}
                 </div>
               )}
-              {/* NEW: Question Creator Selector */}
+              {/* NEW: Item Creator Selector */}
               <div className="filter-section" style={{ marginBottom: "10px" }}>
-                <label>Question Creator:</label>
+                <label>Item Creator:</label>
                 <select
-                  value={questionBankScope}
+                  value={itemBankScope}
                   onChange={(e) => {
-                    setQuestionBankScope(e.target.value);
-                    fetchPresetQuestions();
+                    setItemBankScope(e.target.value);
+                    fetchPresetItems();
                   }}
                 >
                   <option value="personal">Created by Me</option>
@@ -482,52 +501,50 @@ export const TeacherCreateActivityComponent = () => {
                 </select>
               </div>
 
-              {/* Sorting Controls for preset questions */}
+              {/* Sorting Controls for preset items */}
               <div
                 style={{
                   margin: "10px 0",
                   display: "flex",
                   alignItems: "center",
-                  border: "1px solid red", // Debug style to ensure visibility
+                  border: "1px solid red",
                   padding: "5px",
                   borderRadius: "4px",
                   backgroundColor: "#f8f9fa"
                 }}
               >
                 <span style={{ marginRight: "8px" }}>Sort by:</span>
-                <Button variant="link" onClick={() => toggleQuestionSortOrder("questionName")}>
-                  Name {questionSortField === "questionName" && (questionSortOrder === "asc" ? "↑" : "↓")}
+                <Button variant="link" onClick={() => toggleItemSortOrder("itemName")}>
+                  Name {itemSortField === "itemName" && (itemSortOrder === "asc" ? "↑" : "↓")}
                 </Button>
-                <Button variant="link" onClick={() => toggleQuestionSortOrder("questionDifficulty")}>
-                  Difficulty {questionSortField === "questionDifficulty" && (questionSortOrder === "asc" ? "↑" : "↓")}
+                <Button variant="link" onClick={() => toggleItemSortOrder("itemDifficulty")}>
+                  Difficulty {itemSortField === "itemDifficulty" && (itemSortOrder === "asc" ? "↑" : "↓")}
                 </Button>
-                <Button variant="link" onClick={() => toggleQuestionSortOrder("questionPoints")}>
-                  Points {questionSortField === "questionPoints" && (questionSortOrder === "asc" ? "↑" : "↓")}
+                <Button variant="link" onClick={() => toggleItemSortOrder("itemPoints")}>
+                  Points {itemSortField === "itemPoints" && (itemSortOrder === "asc" ? "↑" : "↓")}
                 </Button>
               </div>
 
-              {sortedPresetQuestions.length === 0 ? (
+              {sortedPresetItems.length === 0 ? (
                 <p>
-                  There are no questions yet. Please go to the{' '}
-                  <a href="/teacher/question">Question Bank</a> to create questions.
+                  There are no items yet. Please go to the{' '}
+                  <a href="/teacher/item">Item Bank</a> to create items.
                 </p>
               ) : (
-                sortedPresetQuestions.map((q, idx) => (
+                sortedPresetItems.map((item, idx) => (
                   <Button
                     key={idx}
-                    className={`question-item d-block ${selectedQuestion === q ? 'highlighted' : ''}`}
-                    onClick={() => handleSelectQuestion(q)}
+                    className={`question-item d-block ${selectedItem === item ? 'highlighted' : ''}`}
+                    onClick={() => handleSelectItem(item)}
                     style={{ textAlign: "left", marginBottom: "8px" }}
                   >
-                    {/* Basic Question Info */}
                     <div>
-                      <strong>{q.questionName}</strong> | {q.questionDifficulty} | {q.questionPoints} pts
+                      <strong>{item.itemName}</strong> | {item.itemDifficulty} | {item.itemPoints} pts
                     </div>
-                    {/* Programming Language Icons */}
                     <div style={{ marginTop: "5px" }}>
-                      {(q.programming_languages || q.programmingLanguages || []).map((langObj, i) => {
-                        const plID = langObj.progLangID;
-                        const mapping = programmingLanguageMap[plID] || { name: langObj.progLangName, image: null };
+                      {(item.programming_languages || item.programmingLanguages || []).map((langObj, i) => {
+                        const plName = langObj.progLangName;
+                        const mapping = programmingLanguageMap[plName] || { name: plName, image: null };
                         return mapping.image ? (
                           <img
                             key={i}
@@ -548,7 +565,7 @@ export const TeacherCreateActivityComponent = () => {
             </Modal.Body>
             <Modal.Footer>
               <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-              <Button variant="primary" onClick={handleSaveQuestion}>Save Question</Button>
+              <Button variant="primary" onClick={handleSaveItem}>Save Item</Button>
             </Modal.Footer>
           </div>
         </Modal>
@@ -557,6 +574,7 @@ export const TeacherCreateActivityComponent = () => {
   );
 };
 
+// A small helper component for date/time inputs
 const DateTimeItem = ({ icon, label, date, setDate, className }) => (
   <div className={`date-time-item ${className}`}>
     <div className="label-with-icon">
