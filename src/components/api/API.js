@@ -475,6 +475,46 @@ async function unenrollStudent(classID, studentID) {
     });
 }
 
+
+//////////////////////////////////////////
+// BULETTIN TEACHER FUNCTIONS
+//////////////////////////////////////////
+
+async function getBulletinPosts(classID) {
+    const token = sessionStorage.getItem("access_token");
+    if (!token) return { error: "Unauthorized access" };
+
+    return await safeFetch(`${API_LINK}/teacher/class/${classID}/bulletin`, {
+        method: "GET",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+}
+
+async function createBulletinPost(classID, title, message) {
+    const token = sessionStorage.getItem("access_token");
+    if (!token) return { error: "Unauthorized access" };
+
+    return await safeFetch(`${API_LINK}/teacher/bulletin`, {
+        method: "POST",
+        headers: { 
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ classID, title, message })
+    });
+}
+
+async function deleteBulletinPost(postID) {
+    const token = sessionStorage.getItem("access_token");
+    if (!token) return { error: "Unauthorized access" };
+
+    return await safeFetch(`${API_LINK}/teacher/bulletin/${postID}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+}
+
+
 //////////////////////////////////////////
 // ACTIVITY FUNCTIONS
 //////////////////////////////////////////
@@ -811,5 +851,8 @@ export {
     deleteQuestion,
     getProgrammingLanguages,
     updateClass,
-    unenrollStudent
+    unenrollStudent,
+    getBulletinPosts, 
+    createBulletinPost, 
+    deleteBulletinPost
 };
