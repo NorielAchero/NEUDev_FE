@@ -192,9 +192,9 @@ export const TeacherDashboardComponent = () => {
                             <FontAwesomeIcon icon={faLaptopCode} className='sidebar-icon' /> Sandbox
                         </Nav.Link>
                     </Nav.Item>
-                    <Nav.Item className='nav-item' onClick={() => navigate('/teacher/question')}>
+                    <Nav.Item className='nav-item' onClick={() => navigate('/teacher/item')}>
                         <Nav.Link href='#' className='nav-link'>
-                            <FontAwesomeIcon icon={faLaptopCode} className='sidebar-icon' /> Question Bank
+                            <FontAwesomeIcon icon={faLaptopCode} className='sidebar-icon' /> Item Bank
                         </Nav.Link>
                     </Nav.Item>
                 </Nav>

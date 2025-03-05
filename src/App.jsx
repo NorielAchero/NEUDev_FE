@@ -30,7 +30,7 @@ import TeacherClassManagementClassRecordComponent from "./components/teacher/Tea
 import { TeacherClassManagementComponent } from "./components/teacher/TeacherClassManagementComponent.jsx";
 import { TeacherClassManagementBulletinComponent } from "./components/teacher/TeacherClassManagementBulletinComponent.jsx";
 import { TeacherCreateActivityComponent } from "./components/teacher/TeacherCreateActivityComponent.jsx";
-import TeacherQuestionBankComponent from "./components/teacher/TeacherQuestionBankComponent.jsx";
+import TeacherItemBankComponent from "./components/teacher/TeacherItemBankComponent.jsx";
 
 import TeacherActivitySettingsComponent from "./components/teacher/TeacherActivitySettingsComponent.jsx";
 import TeacherActivityItemsComponent from "./components/teacher/TeacherActivityItemsComponent.jsx";
@@ -74,7 +74,7 @@ function App() {
                     <Route path="/teacher/sandbox" element={<TeacherPlaygroundComponent />} />
 
                     <Route path="/teacher/class/:classID/activity" element={<TeacherClassManagementComponent />} />
-                    <Route path="/teacher/question" element={<TeacherQuestionBankComponent />} />
+                    <Route path="/teacher/item" element={<TeacherItemBankComponent />} />
                     <Route path="/teacher/class/:classID/create-activity" element={<TeacherCreateActivityComponent />} />
                     <Route path="/teacher/class/:classID/classrecord" element={<TeacherClassManagementClassRecordComponent />} />
                     <Route path="/teacher/class/:classID/teacher-bulletin" element={<TeacherClassManagementBulletinComponent />} />
