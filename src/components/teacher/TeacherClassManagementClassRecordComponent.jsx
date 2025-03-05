@@ -172,14 +172,14 @@ const ClassRecord = () => {
             <table>
               <thead>
                 <tr>
-                  <th className="leaderboard-column-titles">#</th> {/* Numbering Column Header */}
-                  <th className="leaderboard-column-titles">Student Name</th>
-                  <th className="leaderboard-column-titles">Student Number</th>
-                  <th className="leaderboard-column-titles">Average Score</th>
-                  <th className="leaderboard-column-titles">Unenroll</th>
+                  <th>#</th> {/* Numbering Column Header */}
+                  <th>Student Name</th>
+                  <th>Student Number</th>
+                  <th>Average Score</th>
+                  <th>Unenroll</th>
                 </tr>
               </thead>
-              <tbody className="leaderboard-students">
+              <tbody>
                 {students.length > 0 ? (
                   students.map((student, index) => (
                     <LeaderboardItem
@@ -204,6 +204,25 @@ const ClassRecord = () => {
           )}
         </div>
       </div>
+
+      {/* Unenroll Confirmation Modal */}
+      <Modal show={showUnenrollModal} onHide={() => setShowUnenrollModal(false)} backdrop="static" keyboard={false} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Unenroll Student</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to unenroll <strong>{selectedStudent?.firstname} {selectedStudent?.lastname}</strong>?</p>
+          <Form onSubmit={handleConfirmUnenroll}>
+            <Form.Group>
+              <Form.Label>Enter your password</Form.Label>
+              <Form.Control type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            </Form.Group>
+            {errorMessage && <p className="text-danger mt-2">{errorMessage}</p>}
+            <Button variant="danger" type="submit" disabled={isProcessing}>{isProcessing ? "Processing..." : "Unenroll"}</Button>
+            <Button variant="secondary" onClick={() => setShowUnenrollModal(false)}>Cancel</Button>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };
